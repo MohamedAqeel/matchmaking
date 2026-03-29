@@ -1,31 +1,394 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
-    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Assassin TDM Elite Tournament</title>
-    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body {
+            background: radial-gradient(circle at top, #0f172a, #020617);
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            text-align: center;
+            margin: 0;
+        }
+
+        /* HEADER */
+        h1 {
+            font-size: 28px;
+            margin-top: 20px;
+            background: linear-gradient(90deg, #22c55e, #4ade80);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        /* CONTAINER */
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            padding: 20px;
+            margin: 20px auto;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 700px;
+            box-shadow: 0 0 30px rgba(0, 255, 150, 0.1);
+        }
+
+        /* LOGO */
+        .logo {
+            width: 80px;
+            margin-bottom: 10px;
+        }
+
+        /* TEXTAREA */
+        textarea {
+            width: 90%;
+            padding: 12px;
+            background: #020617;
+            color: #e2e8f0;
+            border: 1px solid #1e293b;
+            border-radius: 10px;
+        }
+
+        /* BUTTONS */
+        button {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border: none;
+            padding: 10px 16px;
+            margin: 6px;
+            color: white;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px #22c55e;
+        }
+
+        /* PLAYER LIST */
+        #playerListBox {
+            max-height: 250px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .playerRow {
+            background: #020617;
+            margin: 6px;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            border-radius: 8px;
+            border: 1px solid #1e293b;
+        }
+
+        /* WHEEL */
+        canvas {
+            width: 90%;
+            max-width: 350px;
+            margin: auto;
+            display: block;
+            transition: transform 4s cubic-bezier(.17, .67, .32, 1.34);
+            border-radius: 50%;
+            box-shadow: 0 0 25px rgba(34, 197, 94, 0.3);
+        }
+
+        /* ARROW */
+        .arrow {
+            width: 0;
+            height: 0;
+            border-left: 18px solid transparent;
+            border-right: 18px solid transparent;
+            border-top: 28px solid #22c55e;
+            margin: auto;
+        }
+
+        /* POPUP */
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            padding: 25px 45px;
+            font-size: 24px;
+            border-radius: 14px;
+            transition: 0.3s;
+            z-index: 9999;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(34, 197, 94, 0.5);
+        }
+
+        .popup.show {
+            display: block;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        /* SLOTS */
+        #slots {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .slotCard {
+            background: rgba(255, 255, 255, 0.05);
+            margin: 12px;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 16px;
+        }
+
+        .vs {
+            color: #22c55e;
+            font-weight: bold;
+        }
+    </style>
 </head>
 
-<body>
+<body onclick="enableSound()">
 
-    <div class="container">
-        <img src="logo.png" class="logo" />
-        <h1>🎮 Assassin TDM Elite Tournament</h1>
+    <img src="logo.png" class="logo">
+    <h1>🎮 Assassin TDM Elite Tournament</h1>
 
-        <textarea id="players" placeholder="Enter player names (one per line)"></textarea>
+    <div class="container" id="setup">
 
-        <button onclick="startGame()">Start</button>
-        <button onclick="spin()">🎡 Spin</button>
-        <button onclick="exportResults()">📤 Export</button>
+        <textarea id="names" placeholder="Enter player names (one per line)"></textarea><br>
 
-        <canvas id="wheel" width="300" height="300"></canvas>
+        <button onclick="loadPlayers()">LOAD</button>
+        <button onclick="shufflePlayers()">SHUFFLE</button>
+        <button onclick="clearPlayers()">CLEAR</button>
 
-        <div id="currentMatch"></div>
-        <div id="results"></div>
+        <div id="playerListBox"></div>
+
+        <button onclick="start()">🚀 START DRAW</button>
+
     </div>
 
-    <script src="script.js"></script>
+    <div class="container" id="draw" style="display:none">
+
+        <div class="arrow"></div>
+
+        <canvas id="wheelCanvas" width="350" height="350"></canvas>
+
+        <h3>Remaining: <span id="remain"></span></h3>
+
+        <button onclick="spin()">🎡 SPIN</button>
+        <button onclick="reset()">RESET</button>
+        <button onclick="exportResults()">📤 EXPORT</button>
+
+        <div id="slots"></div>
+
+    </div>
+
+    <div class="popup" id="popup"></div>
+
+    <audio id="spinSound" src="https://www.soundjay.com/mechanical/sounds/mechanical-clonk-1.mp3"></audio>
+    <audio id="popSound" src="https://www.soundjay.com/human/sounds/applause-8.mp3"></audio>
+
+    <script>
+
+        /* KEEPING YOUR ORIGINAL LOGIC (UNCHANGED) */
+
+        let players = [];
+        let slots = [];
+        let currentSlot = [];
+        let canvas = document.getElementById("wheelCanvas");
+        let ctx = canvas.getContext("2d");
+        let rotation = 0;
+        let soundUnlocked = false;
+
+        let colors = ["#22c55e", "#4ade80", "#16a34a", "#15803d", "#86efac", "#bbf7d0"];
+
+        function enableSound() {
+            if (!soundUnlocked) {
+                document.getElementById("spinSound").play().catch(() => { });
+                document.getElementById("spinSound").pause();
+                soundUnlocked = true;
+            }
+        }
+
+        function loadPlayers() {
+            players = document.getElementById("names").value.split("\n").filter(x => x.trim() != "");
+            showPlayersUI();
+            drawWheel();
+        }
+
+        function showPlayersUI() {
+            let html = "";
+            players.forEach((p, i) => {
+                html += `<div class="playerRow">${p}<button onclick="removePlayer(${i})">❌</button></div>`;
+            });
+            document.getElementById("playerListBox").innerHTML = html;
+        }
+
+        function removePlayer(i) {
+            players.splice(i, 1);
+            showPlayersUI();
+            drawWheel();
+        }
+
+        function shufflePlayers() {
+            players.sort(() => Math.random() - 0.5);
+            showPlayersUI();
+            drawWheel();
+        }
+
+        function clearPlayers() {
+            players = [];
+            showPlayersUI();
+            drawWheel();
+        }
+
+        function start() {
+            if (players.length % 2 != 0) { alert("Even players needed"); return; }
+            document.getElementById("setup").style.display = "none";
+            document.getElementById("draw").style.display = "block";
+            document.getElementById("remain").innerText = players.length;
+            drawWheel();
+        }
+
+        function drawWheel() {
+            if (players.length == 0) return;
+
+            let angle = 2 * Math.PI / players.length;
+            ctx.clearRect(0, 0, 350, 350);
+
+            players.forEach((p, i) => {
+                ctx.beginPath();
+                ctx.moveTo(175, 175);
+                ctx.arc(175, 175, 170, i * angle, (i + 1) * angle);
+                ctx.fillStyle = colors[i % colors.length];
+                ctx.fill();
+
+                ctx.save();
+                ctx.translate(175, 175);
+                ctx.rotate(i * angle + angle / 2);
+                ctx.fillStyle = "black";
+                ctx.font = "bold 14px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText(p, 110, 5);
+                ctx.restore();
+            });
+        }
+
+        function spin() {
+
+            if (players.length == 0) return;
+
+            let s = document.getElementById("spinSound");
+            s.currentTime = 0;
+            s.play().catch(() => { });
+
+            let anglePerPlayer = 360 / players.length;
+
+            let index = Math.floor(Math.random() * players.length);
+            let selected = players[index];
+
+            let stopAngle = 360 - (index * anglePerPlayer) - (anglePerPlayer / 2);
+
+            let spinRounds = 5;
+
+            rotation += (spinRounds * 360) + stopAngle;
+
+            canvas.style.transform = `rotate(${rotation}deg)`;
+
+            setTimeout(() => {
+
+                showPopup(selected);
+
+                currentSlot.push(selected);
+                players.splice(index, 1);
+                drawWheel();
+
+                if (currentSlot.length == 2) {
+
+                    slots.push(currentSlot);
+                    currentSlot = [];
+                    showSlots();
+
+                    document.getElementById("popSound").play().catch(() => { });
+
+                    confetti({
+                        particleCount: 200,
+                        spread: 120,
+                        origin: { x: 0.5, y: 0.6 }
+                    });
+
+                }
+
+                document.getElementById("remain").innerText = players.length;
+
+            }, 4000);
+        }
+
+        function showPopup(name) {
+
+            let pop = document.getElementById("popup");
+
+            pop.innerHTML = `
+<div style="font-size:20px;margin-bottom:10px;">SELECTED</div>
+<div style="font-size:28px;font-weight:bold;">${name}</div>
+<br>
+<button onclick="closePopup()">OK</button>
+`;
+
+            pop.classList.add("show");
+
+            confetti({
+                particleCount: 150,
+                spread: 100,
+                origin: { x: 0.5, y: 0.5 }
+            });
+
+            setTimeout(() => { closePopup(); }, 4000);
+        }
+
+        function closePopup() {
+            document.getElementById("popup").classList.remove("show");
+        }
+
+        function showSlots() {
+
+            let html = "";
+
+            slots.forEach((s, i) => {
+                html += `<div class="slotCard">
+🔥 MATCH ${i + 1}<br><br>
+${s[0]} <span class="vs">VS</span> ${s[1]}
+</div>`;
+            });
+
+            document.getElementById("slots").innerHTML = html;
+        }
+
+        function exportResults() {
+            let text = "ASSASSIN TDM ELITE TOURNAMENT\n\n";
+            slots.forEach((s, i) => {
+                text += `Match ${i + 1}: ${s[0]} VS ${s[1]}\n`;
+            });
+            let blob = new Blob([text], { type: "text/plain" });
+            let a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "Assassin_TDM_Results.txt";
+            a.click();
+        }
+
+        function reset() {
+            location.reload();
+        }
+
+    </script>
+
 </body>
 
 </html>
