@@ -3,19 +3,25 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Matchmaking Engine</title>
+    <title>Assassin TDM Elite Tournament</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
     <div class="container">
-        <h1>🎮 Tournament Matchmaking</h1>
+        <img src="logo.png" class="logo" />
+        <h1>🎮 Assassin TDM Elite Tournament</h1>
 
         <textarea id="players" placeholder="Enter player names (one per line)"></textarea>
 
-        <button onclick="generateMatches()">Generate Matches</button>
+        <button onclick="startGame()">Start</button>
+        <button onclick="spin()">🎡 Spin</button>
+        <button onclick="exportResults()">📤 Export</button>
 
+        <canvas id="wheel" width="300" height="300"></canvas>
+
+        <div id="currentMatch"></div>
         <div id="results"></div>
     </div>
 
